@@ -1,0 +1,659 @@
+\ProvidesPackage{mpgraph}[2016/6/14 v0.3]% mpGraph.sty Package file
+ % everymplib options
+ \everymplib{beginfig(1);%input mpcolornames;
+w=3mm;\mpHandWriteSet;}
+ \everyendmplib{endfig;}
+ %
+ % handwriting mode on/off
+ \def\mpHandWriteOn{hwmode:=true;}
+ \def\mpHandWriteOff{hwmode:=false;}
+ %
+ % Size Draw Basic length, Pen circle Size,...
+ \def\mpBaseSize(#1){w:=#1;}
+ \def\mpPenSize(#1){pickup pencircle scaled #1pt;}
+ %drawoptions(withpen pencircle scaled #1mm);}
+ \def\mpPenColor(#1){drawoptions(withcolor #1);}
+ \def\mpPenColorCMYK(#1,#2,#3,#4){drawoptions(withcmykcolor (#1,#2,#3,#4));}
+ %
+ % Arrow type Change
+\def\mpGarrowChg{%\sendMP{%
+vardef arrowhead expr p :=
+  save q,e; path q; pair e;
+  e = point length p of p;
+  q = p shifted -e cutbefore makepath(pencircle scaled 2ahlength);
+  (q rotated .5ahangle & reverse q rotated -.5ahangle -- point .7length q of q -- cycle)  shifted e
+enddef;
+}%}%
+% Redraw picture
+\def\mpReDrawPict(#1){%
+picture tmpict;tmpict=currentpicture;currentpicture:=nullpicture;
+draw tmpict scaled #1;
+}
+% DrawPlaneClipping (#1:width,#2:height)(#3,#4:left_bottom point)
+\def\mpPlaneClip(#1,#2)(#3,#4){%
+path PlaneBox;PlaneBox=((#3,#4)--(#3+(#1),#4)--(#3+(#1),#4+(#2))--(#3,#4+(#2))--cycle) scaled w;
+clip currentpicture to PlaneBox;%draw PlaneBox withcolor white;
+}%
+\def\mpPlaneClipRounded(#1,#2)(#3,#4)[#5]{%
+path PlaneBox;PlaneBox=(%
+(#3,#4)+(#5,0)--(#3+(#1),#4)-(#5,0){dir 0}..{dir 90}(#3+(#1),#4)+(0,#5)--%
+(#3+(#1),#4+(#2))-(0,#5){dir 90}..{dir 180}(#3+(#1),#4+(#2))-(#5,0)--%
+(#3,#4+(#2))+(#5,0){dir 180}..{dir -90}(#3,#4+(#2))-(0,#5)--%
+(#3,#4)+(0,#5){dir -90}..{dir 0}cycle) scaled w;%
+clip currentpicture to PlaneBox;%draw PlaneBox withcolor white;
+}%
+% PathClipping
+\def\mpPathClip(#1)#2{%
+picture clp.#2;clip currentpicture to #1;clp.#1=currentpicture;
+}%
+ % Points Definition,...
+ \def\mpPointDef#1(#2,#3){z.#1=(#2,#3) scaled w;}
+ \def\mpPointRDef#1(#2,#3){x.#1:=(#2)*w;y.#1:=(#3)*w;}
+ \def\mpPointsDef#1(#2,#3)#4.{\mpPointDef#1(#2,#3)\ifx#4\empty\else\mpPointsDef#4.\fi}%通らへん \@empty ではなく \empty
+ \def\mpPointsRDef#1(#2,#3)#4.{\mpPointRDef#1(#2,#3)\ifx#4\empty\else\mpPointsRDef#4.\fi}%通らへん \@empty ではなく \empty
+\def\mpGmidPoint #1#2 #3{z.#3=1/2[z.#1,z.#2];}%
+\def\mpGmidPoints #1#2#3|#4#5.{\mpGmidPoint #1#2 #4\ifx#5\empty\else\mpGmidPoints #2#3|#5.\fi}%
+\def\mpGdivPoint #1#2 #3:#4 #5{z.#5=(#3/(#3+(#4)))[z.#1,z.#2];}%
+\def\mpGrotPoint #1#2 #3 #4{z.#4=z.#1+(z.#2-z.#1) rotated #3;}
+\def\mpGrotPoints #1#2 #3 #4#5.{\mpGrotPoint #1#2 #3 #4\ifx#5\empty\else\mpGrotPoints #1#4 #3 #5.\fi}%
+\def\mpGhalfanglePoint #1#2#3 #4{%
+z.#4=(length(z.#1-z.#2)/(length(z.#1-z.#2)+length(z.#1-z.#3)))[z.#2,z.#3];}%
+\def\mpGverticalPoint #1 #2#3 #4{z.#4=0.5[z.#1,z.#2 + (z.#1-z.#2) rotated (2 * (angle (z.#3-z.#2) - angle (z.#1-z.#2)) )];}%
+\def\mpGcrossPoint #1#2 #3#4 #5{z.#5=whatever[z.#1,z.#2] = whatever[z.#3,z.#4];}%
+\def\mpGtrianglePoint #1#2[#3,#4]#5{z.#5=%
+(z.#1+#3/length(z.#2-z.#1)*w*(z.#2-z.#1)..z.#1+#3/length(z.#2-z.#1)*w*(z.#2-z.#1) rotated 90..z.#1-#3/length(z.#2-z.#1)*w*(z.#2-z.#1)) %
+intersectionpoint %
+(z.#2+#4/length(z.#2-z.#1)*w*(z.#2-z.#1)..z.#2+#4/length(z.#2-z.#1)*w*(z.#2-z.#1) rotated 90..z.#2-#4/length(z.#2-z.#1)*w*(z.#2-z.#1));}%
+\def\mpGtrianglePointD #1#2(#3,#4)#5{z.#5=%
+(z.#1+length(z.#3-z.#1)/length(z.#2-z.#1)*(z.#2-z.#1)..z.#1+length(z.#3-z.#1)/length(z.#2-z.#1)*(z.#2-z.#1) rotated 90..z.#1-length(z.#3-z.#1)/length(z.#2-z.#1)*(z.#2-z.#1)) %
+intersectionpoint %
+(z.#2+length(z.#4-z.#2)/length(z.#2-z.#1)*(z.#2-z.#1)..z.#2+length(z.#4-z.#2)/length(z.#2-z.#1)*(z.#2-z.#1) rotated 90..z.#2-length(z.#4-z.#2)/length(z.#2-z.#1)*(z.#2-z.#1));}%
+\def\mpGmovePoint #1 #2#3 #4{z.#4=z.#1+(z.#3-z.#2);}%
+\def\mpGmovedistPoint #1 #2#3(#4)#5{z.#5=z.#1+#4*w*unitvector(z.#3-z.#2);}%
+\def\mpGmoveDistPoint #1 #2#3(#4#5)#6{z.#6=z.#1+length(z.#5-z.#4)*unitvector(z.#3-z.#2);}%
+\def\mpGdistanglePoint #1(#2,#3)#4{z.#4=z.#1+((#2w,0) rotated (#3));}%
+\def\mpGvectanglePoint #1 #2#3(#4) #5{z.#5=z.#1+((length(z.#3-z.#2),0) rotated (#4));}%
+\def\mpGmovehalfPoint #1 #2#3 #4{z.#4=z.#1+(z.#3-z.#2)/2;}%
+\def\mpGreflectedPoint #1 #2#3 #4{z.#4=z.#1 reflectedabout (z.#2,z.#3);}%
+%
+\def\mpGCircumCenter #1#2#3 #4{%
+pair tmpCC;
+(z.#1+z.#2)/2-tmpCC = whatever*((z.#1-z.#2) rotated 90);
+(z.#2+z.#3)/2-tmpCC = whatever*((z.#2-z.#3) rotated 90);
+z.#4=tmpCC;
+}
+\def\mpGpoleCirclPolarPoint #1 #2#3 #4#5{% #1:Pole #2#3:CircleCenterOncircle #4#5 PolarPoints
+numeric n.r;n.r=length(z.#2-z.#3)/w;\mpGpoleCircPolarPoint #1 #2(n.r) #4#5}%
+\def\mpGpoleCircPolarPoint #1 #2(#3) #4#5{% #1:Pole #2(#3):Circle(radius) #4#5 PolarPoints
+numeric n.a,n.b;n.a=length(z.#1-z.#2)/w;
+if n.a>#3:n.b=sqrt(n.a*n.a-#3*#3);\mpGtrianglePoint #1#2[n.b,#3]#4\mpGtrianglePoint #2#1[#3,n.b]#5
+elseif n.a<#3:n.b=sqrt(#3*#3-n.a*n.a);
+\mpGtrianglePoint #1#2[n.b,#3]{x#4}\mpGtrianglePoint #2#1[#3,n.b]{x#5}
+\mpGrotPoint {x#4}#2 90 {y#4}\mpGrotPoint {x#5}#2 90 {y#5}
+\mpGcrossPoint {x#4}{y#4} {x#5}{y#5} {p#4#5}
+\mpGmovehalfPoint {p#4#5} {x#4}{x#5} #4\mpGmovehalfPoint {p#4#5} {x#5}{x#4} #5
+else:\mpGrotPoint #1#2 90 #4\mpGrotPoint #1#2 -90 #5
+fi;}%
+\def\mpGpoleCircTanPoint #1 #2(#3) #4#5{\mpGpoleCircPolarPoint #1 #2(#3) #4#5}
+% ???
+\def\mpGcircrossPoint #1#2(#3)#4{% #1:center #2:circlepoint #3:innerPoint #4:answer
+z.#4=(fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1) intersectionpoint (z.#3--z.#3+10*(z.#1-z.#3) rotated 90);}%
+\def\mpGcircrossPointR #1#2(#3)#4{% #1:center #2:circlepoint #3:innerPoint #4:answer
+z.#4=(fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1) intersectionpoint (z.#3--z.#3+10*(z.#1-z.#3) rotated -90);}%
+\def\mpGcircRPoint #1#2(#3)#4{% #1:center #2:circlepoint #3:innerPoint #4:answer
+z.#4=(fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1) intersectionpoint (z.#1--z.#1+2*length(z.#2-z.#1)*unitvector(z.#3-z.#1));}%
+% 20180211add
+\def\mpGCircPoint #1(#2)#3 #4#5{% #1(#2):Circle(radius) #3:In Circle Point #4#5 Points on Circle
+numeric n.a,n.b;n.a=length(z.#3-z.#1)/w;
+n.b=sqrt(#2*#2-n.a*n.a);
+\mpGtrianglePoint #1#3[#2,n.b]#4\mpGtrianglePoint #3#1[n.b,#2]#5
+}%
+\def\mpGcircPoint #1(#2)#3 #4#5{% #1(#2):Circle(radius) #3:In Circle Point #4#5 Points on Circle
+numeric n.a,n.b,n.c;n.a=length(z.#3-z.#1)/w;n.c=length(z.#2-z.#1)/w;
+n.b=sqrt(n.c*n.c-n.a*n.a);
+\mpGtrianglePoint #1#3[n.c,n.b]#4\mpGtrianglePoint #3#1[n.b,n.c]#5
+}%
+%
+\def\mpGdisttrianglePoint #1#2(#3#4,#5#6)#7{
+numeric n.a,n.b;n.a=length(z.#4-z.#3)/w;n.b=length(z.#6-z.#5)/w;
+\mpGtrianglePoint #1#2[n.a,n.b]#7
+}%
+%
+\def\mpGmoveDistPoint #1 #2#3(#4#5)#6{z.#6=z.#1+length(z.#5-z.#4)*unitvector(z.#3-z.#2);}%
+%
+%
+ % Draw
+ % Draw points 0.3mm-2mm-4mm
+ \def\mpPpoint(#1,#2){if not hwmode:filldraw fullcircle scaled 0.5mm shifted ((#1,#2) scaled w);
+ else:draw ( ((#1,#2) scaled w) for j=1 upto 60:..((#1,#2) scaled w)+((j+uniformdeviate(20)-20,0) scaled 0.3mm rotated (30*j))/20 endfor);fi;}
+ \def\mpGpoint#1{if not hwmode:filldraw fullcircle scaled 0.6mm shifted z.#1;
+ else:draw ( z.#1 for j=1 upto 60:..z.#1+((j+uniformdeviate(20)-20,0) scaled 0.3mm rotated (30*j))/20 endfor);fi;}
+ \def\mpGpointC#1[#2]{if not hwmode:filldraw fullcircle scaled 0.6mm shifted z.#1 withcolor #2;
+ else:draw ( z.#1 for j=1 upto 60:..z.#1+((j+uniformdeviate(20)-20,0) scaled 0.3mm rotated (30*j))/20 endfor) withcolor #2;fi;}
+ \def\mpGpointb#1{if not hwmode:filldraw fullcircle scaled 2mm shifted z.#1;
+ else:filldraw hand_writing_path(fullcircle scaled 2mm shifted z.#1);fi;}
+ \def\mpGpointo#1{fill fullcircle scaled 2mm shifted z.#1 withcolor white;
+ if not hwmode:draw fullcircle scaled 2mm shifted z.#1;
+ else:for i=1 upto hwtm:draw hand_writing_path(fullcircle scaled 2mm shifted z.#1);endfor;fi;}
+ \def\mpGpointbC#1[#2]{if not hwmode:filldraw fullcircle scaled 2mm shifted z.#1;
+ else:path tmp.hp;tmp.hp=hand_writing_path(fullcircle scaled 2mm shifted z.#1);
+filldraw tmp.hp withcolor #2;fi;}
+ \def\mpGpointB#1{if not hwmode:filldraw fullcircle scaled 4mm shifted z.#1;
+ else:filldraw hand_writing_path(fullcircle scaled 4mm shifted z.#1);fi;}
+ \def\mpGpointx#1{if not hwmode:
+ draw ((0.5,0.5)--(-0.5,-0.5)) scaled 2mm shifted z.#1;
+ draw ((-0.5,0.5)--(0.5,-0.5)) scaled 2mm shifted z.#1;
+ else:
+ hwp.dum:=((0.5,0.5)--(-0.5,-0.5)) scaled 2mm shifted z.#1;for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ hwp.dum:=((-0.5,0.5)--(0.5,-0.5)) scaled 2mm shifted z.#1;for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ fi;}
+ \def\mpGpointmarkx#1{if not hwmode:
+ draw ((0.5,0.5)--(-0.5,-0.5)) scaled 1mm shifted z.#1;
+ draw ((-0.5,0.5)--(0.5,-0.5)) scaled 1mm shifted z.#1;
+ else:
+ hwp.dum:=((0.5,0.5)--(-0.5,-0.5)) scaled 1mm shifted z.#1;for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ hwp.dum:=((-0.5,0.5)--(0.5,-0.5)) scaled 1mm shifted z.#1;for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ fi;}
+ \def\mpPpoints (#1)#2.{\mpPpoint(#1)\ifx#2\empty\else\mpGpoints#2.\fi}
+ \def\mpGpoints #1#2.{\mpGpoint #1\ifx#2\empty\else\mpGpoints#2.\fi}
+ \def\mpGpointCs #1#2[#3]{\mpGpointC #1[#3]\ifx#2\empty\else\mpGpointCs#2[#3]\fi}
+ \def\mpGpointbs #1#2.{\mpGpointb #1\ifx#2\empty\else\mpGpointbs#2.\fi}
+ \def\mpGpointbCs #1#2[#3]{\mpGpointbC #1[#3]\ifx#2\empty\else\mpGpointbCs#2[#3]\fi}
+ \def\mpGpointos #1#2.{\mpGpointo #1\ifx#2\empty\else\mpGpointos#2.\fi}
+ \def\mpGpointBs #1#2.{\mpGpointB #1\ifx#2\empty\else\mpGpointBs#2.\fi}
+ \def\mpGpointxs #1#2.{\mpGpointx #1\ifx#2\empty\else\mpGpointxs#2.\fi}
+ \def\mpGpointmarkxs #1#2.{\mpGpointmarkx #1\ifx#2\empty\else\mpGpointmarkxs#2.\fi}
+% Draw lines
+ \def\mpPline(#1,#2)(#3,#4){if not hwmode:draw ((#1,#2)--(#3,#4)) scaled w;
+ else:for i=1 upto hwtm:draw hand_writing_path(((#1,#2)--(#3,#4)) scaled w);endfor;fi;}
+ \def\mpPlined(#1,#2)(#3,#4){path tmpp;tmpp=((#1,#2)--(#3,#4)) scaled w;
+if not hwmode:draw tmpp dashed withdots scaled 0.5pt;
+else:path tmppp;tmppp=tmpp;
+for i=1 upto hwtm:tmppp:=hand_writing_path(tmpp);draw tmppp dashed withdots scaled 0.5pt;endfor;fi;}
+ \def\mpGline#1#2{if not hwmode:draw z.#1--z.#2;
+ else:for i=1 upto hwtm:draw hand_writing_path(z.#1--z.#2);endfor;fi;}
+ \def\mpGlineC#1#2[#3]{path tmp.p;tmp.p=z.#1--z.#2;%
+if not hwmode:draw tmp.p withcolor #3;
+ else:for i=1 upto hwtm:path tmp.hp;tmp.hp=hand_writing_path(z.#1--z.#2);
+draw tmp.hp withcolor #3;endfor;fi;}
+\def\mpGlinew#1#2[#3]{if not hwmode:draw #3[z.#1,z.#2]--#3[z.#2,z.#1];
+else:for i=1 upto hwtm:draw hand_writing_path(#3[z.#1,z.#2]--#3[z.#2,z.#1]);endfor;fi;}
+\def\mpGlineCw#1#2[#3,#4]{if not hwmode:draw #3[z.#1,z.#2]--#3[z.#2,z.#1] withcolor #4;
+else:for i=1 upto hwtm:path tmp.hp;tmp.hp=hand_writing_path(#3[z.#1,z.#2]--#3[z.#2,z.#1]);draw tmp.hp withcolor #4;endfor;fi;}
+ \def\mpGlined#1#2{path p.#1#2dl;p.#1#2dl=z.#1--z.#2;if not hwmode:draw p.#1#2dl dashed withdots scaled 0.5pt;else:for i=1 upto 2hwtm:p.#1#2dl:=hand_writing_path(z.#1--z.#2);draw p.#1#2dl dashed withdots scaled 0.5pt;endfor;fi;}
+ \def\mpGlinedC#1#2[#3]{path p.#1#2dl;p.#1#2dl=z.#1--z.#2;if not hwmode:draw p.#1#2dl dashed withdots scaled 0.5pt withcolor #3;else:for i=1 upto 2hwtm:p.#1#2dl:=hand_writing_path(z.#1--z.#2);draw p.#1#2dl dashed withdots scaled 0.5pt withcolor #3;endfor;fi;}
+ \def\mpGlinedw#1#2[#3]{path p.#1#2dl;p.#1#2dl=#3[z.#1,z.#2]--#3[z.#2,z.#1];if not hwmode:draw p.#1#2dl dashed withdots scaled 0.5pt;else:for i=1 upto 2hwtm:p.#1#2dl:=hand_writing_path(#3[z.#1,z.#2]--#3[z.#2,z.#1]);draw p.#1#2dl dashed withdots scaled 0.5pt;endfor;fi;}
+%\def\mpGarrow #1#2{drawarrow z.#1--z.#2;}
+ \def\mpParrow (#1,#2)(#3,#4){pair tmpA,tmpB;tmpA=(#1,#2) scaled w;tmpB=(#3,#4) scaled w;
+if not hwmode:draw tmpA--tmpB;draw ((-1.6mm,0.8mm)--(0,0)--(-1.6mm,-0.8mm)) rotated angle(tmpB-tmpA) shifted tmpB;else:for i=1 upto hwtm:draw hand_writing_path(tmpA--tmpB);draw hand_writing_path(((-1.6mm,0.8mm)--(0,0)--(-1.6mm,-0.8mm)) rotated angle(tmpB-tmpA) shifted tmpB);endfor;fi;}
+ \def\mpGarrow #1#2{if not hwmode:draw z.#1--z.#2;draw ((-1.6mm,0.8mm)--(0,0)--(-1.6mm,-0.8mm)) rotated angle(z.#2-z.#1) shifted z.#2;else:for i=1 upto hwtm:draw hand_writing_path(z.#1--z.#2);draw hand_writing_path(((-1.6mm,0.8mm)--(0,0)--(-1.6mm,-0.8mm)) rotated angle(z.#2-z.#1) shifted z.#2);endfor;fi;}
+ \def\mpGarrowX #1#2[#3]{if not hwmode:draw z.#1--z.#2;draw (((-1.6mm,0.8mm)--(0,0)--(-1.6mm,-0.8mm)) scaled #3) rotated angle(z.#2-z.#1) shifted z.#2;else:for i=1 upto hwtm:draw hand_writing_path(z.#1--z.#2);draw hand_writing_path((((-1.6mm,0.8mm)--(0,0)--(-1.6mm,-0.8mm)) scaled #3) rotated angle(z.#2-z.#1) shifted z.#2);endfor;fi;}
+ \def\mpGlines#1#2#3.{\mpGline#1#2\ifx#3\empty\else\mpGlines#2#3.\fi}
+ \def\mpGliness#1#2#3.{\mpGline#1#2\ifx#3\empty\else\mpGliness#3.\fi}
+ \def\mpGlineds#1#2#3.{\mpGlined#1#2\ifx#3\empty\else\mpGlineds#2#3.\fi}
+ \def\mpGlinedss#1#2#3.{\mpGlined#1#2\ifx#3\empty\else\mpGlinedss#3.\fi}
+ \def\mpGlineCs#1#2#3[#4]{\mpGlineC#1#2[#4]\ifx#3\empty\else\mpGlineCs#2#3[#4]\fi}
+ \def\mpGlinedCs#1#2#3[#4]{\mpGlinedC#1#2[#4]\ifx#3\empty\else\mpGlinedCs#2#3[#4]\fi}
+ \def\mpGarrows#1#2#3.{\mpGarrow#1#2\ifx#3\empty\else\mpGarrows#2#3.\fi}
+ \def\mpGarrowws#1#2#3.{\mpGarrow#1#2\ifx#3\empty\else\mpGarrows#3.\fi}
+ \def\mpGarrowXs#1#2#3[#4]{\mpGarrowX#1#2[#4]\ifx#3\empty\else\mpGarrowXs#2#3[#4]\fi}
+ \def\mpGarrowwXs#1#2#3[#4]{\mpGarrowX#1#2[#4]\ifx#3\empty\else\mpGarrowwXs#3[#4]\fi}
+%
+\def\mpGcirc #1(#2){if not hwmode:draw fullcircle scaled (2*#2*w) shifted z.#1;
+ else:for i=1 upto hwtm:draw hand_writing_path(fullcircle scaled (2*#2*w) shifted z.#1);endfor;fi;}%
+\def\mpGcircC #1(#2)[#3]{if not hwmode:draw fullcircle scaled (2*#2*w) shifted z.#1 withcolor #3;
+ else:for i=1 upto hwtm:path tmp.hp;tmp.hp=hand_writing_path(fullcircle scaled (2*#2*w) shifted z.#1);draw tmp.hp withcolor #3;endfor;fi;}%
+\def\mpGcircs #1(#2)#3.{\mpGcirc#1(#2)\ifx#3\empty\else\mpGcircs#3.\fi}%
+\def\mpGcircl #1#2{if not hwmode:draw fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1; else:for i=1 upto hwtm:draw hand_writing_path(fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1);endfor;fi;}%
+\def\mpGcirclC #1#2[#3]{if not hwmode:draw fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1 withcolor #3;else:for i=1 upto hwtm:path tmp.hp;tmp.hp=hand_writing_path(fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1);draw tmp.hp withcolor #3;endfor;fi;}%
+\def\mpGcircd #1(#2){path p.#1#2dc;p.#1#2dc=fullcircle scaled (2*#2*w) shifted z.#1;if not hwmode:draw p.#1#2dc dashed withdots scaled 0.5pt;else:for i=1 upto hwtm:p.#1#2dc:=hand_writing_path(fullcircle scaled (2*#2*w) shifted z.#1);draw p.#1#2dc dashed withdots scaled 0.5pt;endfor;fi;}%
+\def\mpGcircld #1#2{path p.#1#2dc;p.#1#2dc=fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1;if not hwmode:draw p.#1#2dc dashed withdots scaled 0.5pt; else:for i=1 upto hwtm:p.#1#2dc:=hand_writing_path(fullcircle scaled (2*length(z.#1-z.#2)) shifted z.#1);draw p.#1#2dc dashed withdots scaled 0.5pt;endfor;fi;}%
+%%
+ \def\mpGcircls #1#2#3.{\mpGcircl#1#2\ifx#3\empty\else\mpGcircls#3.\fi}%
+ \def\mpGaglArc #1(#2,#3)#4{if not hwmode:draw z.#1{dir #2}..{dir #3}z.#4;
+ else:for i=1 upto hwtm:draw hand_writing_path(z.#1{dir #2}..{dir #3}z.#4);endfor;fi;}
+ \def\mpGaglArcd #1(#2,#3)#4{if not hwmode:draw z.#1{dir #2}..{dir #3}z.#4 dashed withdots scaled 0.5pt;
+ else:for i=1 upto hwtm:draw hand_writing_path(z.#1{dir #2}..{dir #3}z.#4) dashed withdots scaled 0.5pt;endfor;fi;}
+% draw Circle Arc
+\def\mpGcircarc #1(#2)(#3,#4){%
+draw ((#2w,0) rotated #3{dir (#3+90)}..
+{dir ((#3+#4)/2+90)}(#2w,0) rotated ((#3+#4)/2){dir ((#3+#4)/2+90)}..
+{dir (#4+90)}(#2w,0) rotated #4) shifted z.#1;}%
+\def\mpPcircarc (#1,#2)(#3)(#4,#5){%
+draw ((#3w,0) rotated #4{dir (#4+90)}..
+{dir ((#4+#5)/2+90)}(#3w,0) rotated ((#4+#5)/2){dir ((#4+#5)/2+90)}..
+{dir (#5+90)}(#3w,0) rotated #5) shifted (#1w,#2w);}%
+\def\mpPcircarcF (#1,#2)(#3)(#4,#5)[#6]{%
+fill ((#3w,0) rotated #4{dir (#4+90)}..
+{dir ((#4+#5)/2+90)}(#3w,0) rotated ((#4+#5)/2){dir ((#4+#5)/2+90)}..
+{dir (#5+90)}(#3w,0) rotated #5--(0,0)--cycle) shifted (#1w,#2w) withcolor #6;}%
+\def\mpGcirclarc #1#2(#3,#4){path p.ca#1#2;%
+p.ca#1#2=((length(z.#1-z.#2),0) rotated #3{dir (#3+90)}..
+{dir ((#3+#4)/2+90)}(length(z.#1-z.#2),0) rotated ((#3+#4)/2){dir ((#3+#4)/2+90)}..
+{dir (#4+90)}(length(z.#1-z.#2),0) rotated #4) shifted z.#1;
+if not hwmode:draw p.ca#1#2; else: for i=1 upto hwtm:draw hand_writing_path(p.ca#1#2);endfor;fi;}%
+\def\mpGcircarcd #1(#2)(#3,#4){%
+draw ((#2w,0) rotated #3{dir (#3+90)}..
+{dir ((#3+#4)/2+90)}(#2w,0) rotated ((#3+#4)/2){dir ((#3+#4)/2+90)}..
+{dir (#4+90)}(#2w,0) rotated #4) shifted z.#1 dashed withdots scaled .4;}%
+
+% Draw arc for Construction
+\def\mpSarc #1(#2){%
+draw z.#1+(z.#2-z.#1) rotated -15..z.#2..z.#1+(z.#2-z.#1) rotated 15 withcolor 0.5white;}%
+\def\mpSarcd #1(#2){%
+draw z.#1+(z.#2-z.#1) rotated -5..z.#2..z.#1+(z.#2-z.#1) rotated 5 dashed withdots scaled .4;}%
+%
+% Draw Lattices
+\def\mpPlattice(#1,#2)(#3,#4){%
+for x=#1 upto #3-1:for y=#2 upto #4-1:%
+draw (((0,1)--(0,0)--(1,0)) shifted (x,y)) scaled w;
+endfor;endfor;draw ((#1,#4)--(#3,#4)--(#3,#2)) scaled w;}%
+\def\mpPlatticeC(#1,#2)(#3,#4)[#5]{%
+for x=#1 upto #3-1:for y=#2 upto #4-1:%
+draw (((0,1)--(0,0)--(1,0)) shifted (x,y)) scaled w withcolor #5;
+endfor;endfor;draw ((#1,#4)--(#3,#4)--(#3,#2)) scaled w withcolor #5;}%
+\def\mpPlatticeX(#1,#2)(#3,#4){%
+for x=#1 upto #3-1:for y=#2 upto #4-1:%
+draw (((0,1)--(0,0)--(1,0)--cycle) shifted (x,y)) scaled w;
+draw (((0,0)--(1,1)) shifted (x,y)) scaled w;
+endfor;endfor;draw ((#1,#4)--(#3,#4)--(#3,#2)) scaled w;}%
+\def\mpPlatticeXC(#1,#2)(#3,#4)[#5]{%
+for x=#1 upto #3-1:for y=#2 upto #4-1:%
+draw (((0,1)--(0,0)--(1,0)--cycle) shifted (x,y)) scaled w withcolor #5;
+draw (((0,0)--(1,1)) shifted (x,y)) scaled w withcolor #5;
+endfor;endfor;draw ((#1,#4)--(#3,#4)--(#3,#2)) scaled w withcolor #5;}%
+%
+% divide Line Mark
+\def\mpGdivlineMark #1#2(#3){%
+for i=1 upto #3-1:
+fill (fullcircle scaled 1mm)%
+% (1pt*unitvector(z.#1-z.#2) rotated 90 --1pt*unitvector(z.#1-z.#2) rotated -90) %
+shifted (z.#1+(i/#3)*(z.#2-z.#1));
+endfor;
+for i=1 upto #3:
+draw (1.5pt*unitvector(z.#1-z.#2) rotated 90 --1.5pt*unitvector(z.#1-z.#2) rotated -90) %
+shifted (z.#1+((i-0.5)/#3)*(z.#2-z.#1));
+endfor;
+}%
+\def\mpGdivlineMarkk #1#2(#3){%
+for i=1 upto #3-1:
+fill (fullcircle scaled 1mm)%
+% (1pt*unitvector(z.#1-z.#2) rotated 90 --1pt*unitvector(z.#1-z.#2) rotated -90) %
+shifted (z.#1+(i/#3)*(z.#2-z.#1));
+endfor;
+for i=1 upto #3:
+draw (1.5pt*unitvector(z.#1-z.#2) rotated 90 --1.5pt*unitvector(z.#1-z.#2) rotated -90) %
+shifted (z.#1+((i-0.5)/#3)*(z.#2-z.#1)+1pt*unitvector(z.#1-z.#2));
+draw (1.5pt*unitvector(z.#1-z.#2) rotated 90 --1.5pt*unitvector(z.#1-z.#2) rotated -90) %
+shifted (z.#1+((i-0.5)/#3)*(z.#2-z.#1)-1pt*unitvector(z.#1-z.#2));
+endfor;
+}%
+\def\mpGdivlineMarkks #1#2#3(#4){%
+\mpGdivlineMarkk#1#2(#4)\ifx#3\empty\else\mpGdivlineMarkks#3(#4)\fi}
+
+ % fill
+ \def\mpGfill#1#2#3{if not hwmode:fill z.#1--z.#2--z.#3--cycle;
+ else:fill hand_writing_path(z.#1--z.#2--z.#3--cycle);fi;}
+ \def\mpGfillC[#1]#2#3#4{if not hwmode:fill z.#2--z.#3--z.#4--cycle withcolor #1;
+ else:path tmpPth;tmpPth=hand_writing_path(z.#2--z.#3--z.#4--cycle);fill tmpPth withcolor #1;fi;}
+ \def\mpGfills#1#2#3#4.{\mpGfill#1#2#3\ifx#4\empty\else\mpGfills#1#3#4.\fi}
+ \def\mpGfillCs[#1]#2#3#4#5.{\mpGfillC[#1]#2#3#4\ifx#5\empty\else\mpGfillCs[#1]#2#4#5.\fi}
+%
+ % picture move,etc...
+ \def\mpPpictMove(#1,#2){currentpicture := currentpicture shifted (#1w,#2w);}
+ \def\mpGpictMove #1{currentpicture := currentpicture shifted z.#1;}
+ \def\mpPictSave #1{picture p.#1;p.#1=currentpicture;}
+ \def\mpPictSaveCls #1{picture p.#1;p.#1=currentpicture;currentpicture:=nullpicture;}
+ \def\mpPictDraw #1{draw p.#1;}
+ \def\mpPpictDraw #1(#2,#3){draw p.#1 shifted (#2w,#3w);}
+ \def\mpPpictDrawScale #1(#2,#3)[#4]{draw p.#1 scaled #4 shifted (#2w,#3w);}
+ \def\mpPpictDrawXYScale #1(#2,#3)[#4,#5]{draw p.#1 xscaled #4 yscaled #5 shifted (#2w,#3w);} 
+ \def\mpPpictDrawScaleFlip #1(#2,#3)[#4,#5]{draw p.#1 scaled #4 reflectedabout((0,0),(1,0) rotated #5) shifted (#2w,#3w);}
+ \def\mpGpictDraw #1(#2){draw p.#1 shifted z.#2;}
+%
+ % label,text,...
+%
+%label("3",(z.B+z.A)/2);%OK
+%label(btex 3 etex,(z.B+z.A)/2);%OK
+%label(btex $3$ etex,(z.B+z.A)/2);%OK
+%
+\def\mpGptlabel#1(#2){label(textext("#1"),z.#1+(3mm,0) rotated (#2*30));}
+\def\mpGptlabelX#1(#2)[#3]{label(textext("#1"),z.#1+(#3mm,0) rotated (#2*30));}
+\def\mpGptlabelT#1(#2)(#3){label(textext("#3"),z.#1+(3mm,0) rotated (#2*30));}
+\def\mpGptlabels#1(#2)#3.{\mpGptlabel#1(#2)\ifx#3\empty\else\mpGptlabels#3.\fi}%
+\def\mpGptlabelXs#1(#2)#3[#4]{\mpGptlabelX#1(#2)[#4]\ifx#3\empty\else\mpGptlabelXs#3[#4]\fi}%
+\def\mpGptlabelTs#1(#2)(#3)#4.{\mpGptlabelT#1(#2)(#3)\ifx#4\empty\else\mpGptlabelTs#4.\fi}%
+\def\mpPputtxt(#1,#2)(#3){label(textext("#3"),(#1,#2) scaled w);}
+\def\mpGputtxt #1(#2){label(textext("#2"),z.#1);}
+\def\mpGputtxtX #1(#2)[#3]{label(textext("#2"),z.#1+(3mm,0) rotated (#3*30));}
+\def\mpGputtxtRX #1(#2)[#3,#4]{label(textext("#2"),z.#1+(#3w,0) rotated (#4*30));}
+\def\mpGputtxtS #1(#2){label(textext("#2"),z.#1);}
+% Length Label
+\def\mpGlenLabel #1#2(#3){%
+numeric tmpagl;tmpagl=angle((length(z.#2-z.#1),12mm));
+draw z.#1{dir (angle (z.#2-z.#1)) rotated -tmpagl}..%
+(1/2[z.#1,z.#2] + (3mm,0) rotated (angle (z.#1-z.#2)+90) )..
+{dir (angle (z.#2-z.#1)) rotated tmpagl}z.#2 dashed withdots scaled .5 withpen  pencircle scaled 1pt;
+%fill fullcircle scaled 6mm shifted ((z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90) withcolor white;
+label(textext("$"&"#3"&"$"),(z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90);
+%label(btex #3 etex,(z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90);
+}%
+\def\mpGlenLabelBW #1#2(#3)[#4,#5]{%
+draw z.#1{dir (angle (z.#2-z.#1)) rotated -30}..%
+(1/2[z.#1,z.#2] + (3mm,0) rotated (angle (z.#1-z.#2)+90) )..
+{dir (angle (z.#2-z.#1)) rotated 30}z.#2 dashed withdots scaled .5 withpen  pencircle scaled 1pt;
+fill fullcircle xscaled #4mm yscaled #5mm shifted ((z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90) withcolor white;
+label(textext("$"&"#3"&"$"),(z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90);
+%label(btex #3 etex,(z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90);
+}%
+\def\mpGlenLabelX #1#2(#3)[#4]{%
+draw z.#1{dir (angle (z.#2-z.#1)) rotated (-30*#4)}..%
+(1/2[z.#1,z.#2] + (3mm,0) rotated (angle (z.#1-z.#2)+90) )..
+{dir (angle (z.#2-z.#1)) rotated (30*#4)}z.#2 dashed withdots scaled .5 withpen  pencircle scaled 1pt;
+fill fullcircle scaled 6mm shifted ((z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90) withcolor white;
+label(textext("$"&"#3"&"$"),(z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90);
+}%
+\def\mpGlenLabelMP #1#2(#3){%
+draw z.#1{dir (angle (z.#2-z.#1)) rotated -30}..%
+(1/2[z.#1,z.#2] + (3mm,0) rotated (angle (z.#1-z.#2)+90) )..
+{dir (angle (z.#2-z.#1)) rotated 30}z.#2 dashed withdots scaled .5;
+label(textext("$"&decimal(#3)&"$"),(z.#1+z.#2)/2+4mm*unitvector(z.#1-z.#2) rotated 90);
+}%
+\def\mpGlenLabels#1#2(#3)#4.{\mpGlenLabel#1#2(#3)\ifx#4\@empty\else\mpGlenLabels#4.\fi}%
+% angle Label
+\def\mpGangleLabel #1#2#3(#4){%
+pair dumv;dumv=(0,0);numeric duma;duma=0;
+duma:=abs(angle(z.#2-z.#1)-angle(z.#3-z.#1))/2;
+%dumv:=(3mm/cosd(duma))*(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+dumv:=(5mm)*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+%label(textext("$"&"#4"&"$"),z.#1+dumv);
+label(textext("$#4$"),z.#1+dumv);
+}%
+\def\mpGangleLabelX #1#2#3(#4)[#5]{%
+pair dumv;dumv=(0,0);numeric duma;duma=0;
+duma:=abs(angle(z.#2-z.#1)-angle(z.#3-z.#1))/2;
+%dumv:=(3mm/cosd(duma))*(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+dumv:=(#5*3mm+2mm)*(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+label(textext("$"&"#4"&"$"),z.#1+dumv);
+}%
+%
+% Draw Vertical Mark
+\def\mpGverticalMark #1#2#3{path tmp.p;%
+tmp.p=((1/2,1/2)--(2/2,0)--(1/2,-1/2)) zscaled (2mm*(unitvector(z.#1-z.#2)+unitvector(z.#3-z.#2))) shifted z.#2;
+if not hwmode:draw tmp.p;else:for i=1 upto hwtm:draw hand_writing_path(tmp.p);endfor;fi;
+}%
+\def\mpGverticalMarkD #1#2#3{path tmp.p;%
+tmp.p=((unitvector(z.#1-z.#2)--unitvector(z.#1-z.#2)+unitvector(z.#3-z.#2)--unitvector(z.#3-z.#2)) scaled 3mm) shifted z.#2;
+if not hwmode:draw tmp.p;else:for i=1 upto hwtm:draw hand_writing_path(tmp.p);endfor;fi;
+}%
+ % linemarks...
+ \def\mpGlineMark #1#2{if not hwmode:draw (((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2);
+ else:hwp.dum:=(((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2);
+ for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;fi;}
+ \def\mpGparallelMark #1#2{if not hwmode:draw (((-1mm,-1mm)--(1mm,0)--(-1mm,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2);
+ else:hwp.dum:=(((-1mm,-1mm)--(1mm,0)--(-1mm,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2);
+ for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;fi;}
+ \def\mpGparallelMarkk #1#2{if not hwmode:
+draw (((-1mm,-1mm)--(1mm,0)--(-1mm,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(0.75mm,0) rotated angle(z.#2-z.#1));
+draw (((-1mm,-1mm)--(1mm,0)--(-1mm,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(-0.75mm,0) rotated angle(z.#2-z.#1));
+ else:
+hwp.dum:=(((-1mm,-1mm)--(1mm,0)--(-1mm,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(0.5mm,0) rotated angle(z.#2-z.#1));
+ for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+hwp.dum:=(((-1mm,-1mm)--(1mm,0)--(-1mm,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2-(0.5mm,0) rotated angle(z.#2-z.#1));
+ for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;fi;}
+ \def\mpGlineMarkk #1#2{if not hwmode:%
+ draw (((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(0.5mm,0) rotated angle(z.#2-z.#1));
+ draw (((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(-0.5mm,0) rotated angle(z.#2-z.#1));
+ else:hwp.dum:=(((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(0.5mm,0) rotated angle(z.#2-z.#1));
+ for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ hwp.dum:=(((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(-0.5mm,0) rotated angle(z.#2-z.#1));
+ for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;fi;}
+ \def\mpGlineMarko #1#2{if not hwmode:draw fullcircle scaled 2mm shifted ((z.#1+z.#2)/2);
+ else:hwp.dum:=fullcircle scaled 2mm shifted ((z.#1+z.#2)/2);for i=1 upto hwtm:draw hand_writing_path_half(hwp.dum);endfor;fi;}
+ \def\mpGlineMarkt #1#2{if not hwmode:draw ((0,0.7) rotated 120--(0,0.7) rotated -120--(0,0.7)--cycle) scaled 2mm shifted ((z.#1+z.#2)/2);
+ else:hwp.dum:=((0,0.7) rotated 120--(0,0.7) rotated -120--(0,0.7)--cycle) scaled 2mm shifted ((z.#1+z.#2)/2);
+ for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;fi;}
+ \def\mpGlineMarkx #1#2{if not hwmode:
+ draw ((0.5,0.5)--(-0.5,-0.5)) scaled 2mm shifted ((z.#1+z.#2)/2);
+ draw ((-0.5,0.5)--(0.5,-0.5)) scaled 2mm shifted ((z.#1+z.#2)/2);
+ else:
+ hwp.dum:=((0.5,0.5)--(-0.5,-0.5)) scaled 2mm shifted ((z.#1+z.#2)/2);for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ hwp.dum:=((-0.5,0.5)--(0.5,-0.5)) scaled 2mm shifted ((z.#1+z.#2)/2);for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ fi;}
+ \def\mpGlineMarks#1#2#3.{\mpGlineMark#1#2\ifx#3\empty\else\mpGlineMarks#3.\fi}
+ \def\mpGparallelMarks#1#2#3.{\mpGparallelMark#1#2\ifx#3\empty\else\mpGparallelMarks#3.\fi}
+ \def\mpGparallelMarkks#1#2#3.{\mpGparallelMarkk#1#2\ifx#3\empty\else\mpGparallelMarkks#3.\fi}
+ \def\mpGlineMarkks#1#2#3.{\mpGlineMarkk#1#2\ifx#3\empty\else\mpGlineMarkks#3.\fi}
+ \def\mpGlineMarkos#1#2#3.{\mpGlineMarko#1#2\ifx#3\empty\else\mpGlineMarkos#3.\fi}
+ \def\mpGlineMarkts#1#2#3.{\mpGlineMarkt#1#2\ifx#3\empty\else\mpGlineMarkts#3.\fi}
+ \def\mpGlineMarkxs#1#2#3.{\mpGlineMarkx#1#2\ifx#3\empty\else\mpGlineMarkxs#3.\fi}
+% Draw Arc Mark
+ \def\mpGarcMark #1#2#3{%
+hwp.dum:=(((0,-1mm)--(0,1mm)) rotated (angle((z.#2+z.#3)/2-z.#1)+90)) shifted (z.#1+length(z.#2-z.#1)*unitvector((z.#2+z.#3)/2-z.#1));
+if not hwmode:draw hwp.dum;
+else:
+for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;fi;}
+% Draw Angle Mark
+\def\mpGangleMark #1#2#3{%
+pair dumv;dumv=(0,0);numeric duma;duma=0;
+duma:=abs(angle(z.#2-z.#1)-angle(z.#3-z.#1))/2;
+if duma>90:duma:=180-duma;fi;
+%dumv:=(3mm/cosd(duma))*(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+dumv:=(3mm)*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+path p.dump;p.dump=z.#1+(dumv rotated duma)..z.#1+dumv..z.#1+(dumv rotated -duma);
+if not hwmode:draw p.dump;else:for i=1 upto hwtm:draw hand_writing_path(p.dump);endfor;fi;
+}%
+\def\mpGangleMarkk #1#2#3{%
+pair dumvp,dumvm;dumvp=(0,0);dumvm=(0,0);numeric duma;duma=0;
+duma:=abs(angle(z.#2-z.#1)-angle(z.#3-z.#1))/2;
+if duma>90:duma:=180-duma;fi;
+%dumv:=(3mm/cosd(duma))*(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+dumvp:=(3.25mm)*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+dumvm:=(2.75mm)*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+path p.dump,p.dumm;
+p.dump=z.#1+(dumvp rotated duma)..z.#1+dumvp..z.#1+(dumvp rotated -duma);
+p.dumm=z.#1+(dumvm rotated duma)..z.#1+dumvm..z.#1+(dumvm rotated -duma);
+if not hwmode:draw p.dump;draw p.dumm;
+else:for i=1 upto hwtm:draw hand_writing_path(p.dump);draw hand_writing_path(p.dumm);endfor;fi;
+}%
+\def\mpGangleMarkkX #1#2#3[#4]{%
+pair dumvp,dumvm;dumvp=(0,0);dumvm=(0,0);numeric duma;duma=0;
+duma:=abs(angle(z.#2-z.#1)-angle(z.#3-z.#1))/2;
+if duma>90:duma:=180-duma;fi;
+%dumv:=(3mm/cosd(duma))*(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+dumvp:=(#4*3mm+.25mm)*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+dumvm:=(#4*3mm-.25mm)*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+path p.dump,p.dumm;
+p.dump=z.#1+(dumvp rotated duma)..z.#1+dumvp..z.#1+(dumvp rotated -duma);
+p.dumm=z.#1+(dumvm rotated duma)..z.#1+dumvm..z.#1+(dumvm rotated -duma);
+if not hwmode:draw p.dump;draw p.dumm;
+else:for i=1 upto hwtm:draw hand_writing_path(p.dump);draw hand_writing_path(p.dumm);endfor;fi;
+}%
+\def\mpGangleMarko #1#2#3{
+pair dumv;dumv:=2.4mm*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+if not hwmode:draw (fullcircle scaled 4pt) shifted (z.#1+dumv);
+ else:for i=1 upto hwtm:draw hand_writing_path_half((fullcircle scaled 4pt) shifted (z.#1+dumv));endfor;fi;
+}%
+\def\mpGangleMarkoX #1#2#3[#4]{
+pair dumv;dumv:=#4*2.4mm*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+if not hwmode:draw (fullcircle scaled 4pt) shifted (z.#1+dumv);
+ else:for i=1 upto hwtm:draw hand_writing_path_half((fullcircle scaled 4pt) shifted (z.#1+dumv));endfor;fi;
+}%
+\def\mpGangleMarkb #1#2#3{
+pair dumv;dumv:=2.4mm*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+if not hwmode:filldraw (fullcircle scaled 4pt) shifted (z.#1+dumv);
+ else:filldraw hand_writing_path_half((fullcircle scaled 4pt) shifted (z.#1+dumv));fi;
+}%
+\def\mpGangleMarkbS #1#2#3[#4]{
+pair dumv;dumv:=#4*3mm*unitvector(unitvector(z.#2-z.#1)+unitvector(z.#3-z.#1));
+fill (fullcircle scaled 4pt) shifted (z.#1+dumv);
+}%
+
+ %
+ %---------------------------------------------------------------------------------------------------------------
+ %
+ % function's graph...
+ %   MetaPost's Macro to make path of function's graph
+ \def\mpFuncMacroSet{%
+ def compute_curve(suffix f)(expr xmin, xmax, xinc) =
+ ( (xmin,f(xmin)) for x=xmin+xinc step xinc until xmax:..(x,f(x)) endfor) enddef;
+ }%
+ %   \mpFunctDef[f,x**2+2x+3] s.t. f(x)=x^2+2x+3
+ \def\mpFunctDef[#1,#2]{vardef #1(expr x) = #2 enddef;}% \mpFunctDef[f,x**x]でf(x)=x^2
+ %   \mpFunctPath(f)(-2,4)[1/10] making path p.#1 of function #1(x)'s graph of x in (#2,#3) step #4
+ \def\mpFunctPath(#1)(#2,#3)[#4]{path p.#1;p.#1=compute_curve(#1,#2,#3,#4);}
+ \def\mpFunctPathDraw(#1)(#2,#3)[#4]{path p.#1;p.#1=compute_curve(#1,#2,#3,#4);draw p.#1 scaled w;}
+ \def\mpFunctPathDrawd(#1)(#2,#3)[#4]{path p.#1;p.#1=compute_curve(#1,#2,#3,#4);draw p.#1 scaled w dashed withdots scaled 0.5pt;}
+ \def\mpFunctPathDrawC(#1)(#2,#3)[#4][#5]{path p.#1;p.#1=compute_curve(#1,#2,#3,#4);draw p.#1 scaled w withcolor #5;}
+ \def\mpFunctPathDrawCd(#1)(#2,#3)[#4][#5]{path p.#1;p.#1=compute_curve(#1,#2,#3,#4);draw p.#1 scaled w dashed withdots scaled 0.5pt withcolor #5;}
+ \def\mpFunctPoint(#1)(#2){filldraw fullcircle scaled 1mm shifted ((#2,#1(#2)) scaled w);}
+ \def\mpFunctPointb(#1)(#2){filldraw fullcircle scaled 2mm shifted ((#2,#1(#2)) scaled w);}
+ \def\mpFunctPointB(#1)(#2){filldraw fullcircle scaled 3mm shifted ((#2,#1(#2)) scaled w);}
+ \def\mpFunctPointo(#1)(#2){filldraw fullcircle scaled 2mm shifted ((#2,#1(#2)) scaled w) withcolor white;draw fullcircle scaled 2mm shifted ((#2,#1(#2)) scaled w);}
+ \def\mpFunctPointO(#1)(#2){filldraw fullcircle scaled 3mm shifted ((#2,#1(#2)) scaled w) withcolor white;draw fullcircle scaled 2mm shifted ((#2,#1(#2)) scaled w);}
+ \def\mpFunctPointC(#1)(#2)[#3]{filldraw fullcircle scaled 1mm shifted ((#2,#1(#2)) scaled w) withcolor #3;}
+ \def\mpFunctPointCb(#1)(#2)[#3]{filldraw fullcircle scaled 2mm shifted ((#2,#1(#2)) scaled w) withcolor #3;}
+ \def\mpFunctPointCB(#1)(#2)[#3]{filldraw fullcircle scaled 3mm shifted ((#2,#1(#2)) scaled w) withcolor #3;}
+ \def\mpFunctPointCo(#1)(#2)[#3]{filldraw fullcircle scaled 2mm shifted ((#2,#1(#2)) scaled w) withcolor white;draw fullcircle scaled 2mm shifted ((#2,#1(#2)) scaled w) withcolor #3;}
+ \def\mpFunctPointCO(#1)(#2)[#3]{filldraw fullcircle scaled 3mm shifted ((#2,#1(#2)) scaled w) withcolor white;draw fullcircle scaled 2mm shifted ((#2,#1(#2)) scaled w) withcolor #3;}
+
+ \def\mpFunctPathDrawXYscale(#1)(#2,#3)[#4][#5,#6]{path p.#1;p.#1=compute_curve(#1,#2,#3,#4);draw p.#1 xscaled #5 yscaled #6 scaled w;}
+ %   Mesh sheet Macro
+ \def\mpMeshSet(#1,#2)(#3,#4)[#5,#6]{% \mpMeshSet(-3,-4)(7,8) left-bottom(-3,-3)right-upper(7,8) color#5 thickness#6
+ \mpPenSize(#6)
+ for x=#1 upto #3:draw ((x,#2-1)--(x,#4+1)) scaled w withcolor #5;endfor;
+ for y=#2 upto #4:draw ((#1-1,y)--(#3+1,y)) scaled w withcolor #5;endfor;
+ }% 
+ \def\mpGraphSet(#1,#2)(#3,#4)[#5]{% \mpGraphSet(-3,-4)(7,8) left-bottom(-3,-3)right-upper(7,8)
+ \mpMeshSet(#1,#2)(#3,#4)[#5,0.02]
+ \mpPenSize(0.06)% 座標軸入れる
+ drawarrow ((#1,0)--(#3.4,0)) scaled w withcolor 0.5white;
+ drawarrow ((0,#2)--(0,#4.4)) scaled w withcolor 0.5white;
+ \mpFuncMacroSet
+ }%
+ %
+ %---------------------------------------------------------------------------------------------------------------
+ %
+ % handwriting Macros
+ %   MetaPost's Macro to make hand-writing like path from path defined
+ \def\mpHandWriteSet{%
+ boolean hwmode;hwmode=false;
+ numeric hwpd,hwstp,hwagl,hwtm;hwpd=2;hwstp=1/8;hwagl=10;hwtm=5;
+ path hwp.dum;hwp.dum=(0,0)--(1,0);
+ def hand_writing_path(expr pth) =
+   point 0 of pth+(uniformdeviate(100)/100*1/hwpd,0) rotated uniformdeviate(360)
+   for i=1 upto floor(length(pth)/(hwstp)):
+   ..(point (i*length(pth)/floor(length(pth)/(hwstp))) of pth+(uniformdeviate(100)/100*1/hwpd,0) rotated uniformdeviate(360))
+   {dir (angle(direction (i*length(pth)/floor(length(pth)/(hwstp))) of pth) + uniformdeviate(100)/100*hwagl-hwagl/2)}
+   endfor if cycle pth:--cycle;fi;
+ enddef;
+ def hand_writing_path_half(expr pth) =
+   point 0 of pth+(uniformdeviate(100)/100*1/hwpd,0) rotated uniformdeviate(360)
+   for i=1 upto floor(length(pth)/(hwstp)/2):
+   ..(point (i*length(pth)/floor(length(pth)/(hwstp)/2)) of pth+(uniformdeviate(100)/200*1/hwpd,0) rotated uniformdeviate(360))
+   {dir (angle(direction (i*length(pth)/floor(length(pth)/(hwstp)/2)) of pth) + uniformdeviate(100)/200*hwagl-hwagl/2)}
+   endfor if cycle pth:--cycle;fi;
+ enddef;
+ }% 
+% default setting : numeric hwpd,hwstp,hwagl,hwtm;hwpd=2;hwstp=1/8;hwagl=10;hwtm=5;
+ \def\mpHandWriteSetting(#1,#2,#3)[#4]{hwpd:=#1;hwstp:=#2;hwagl:=#3;hwtm:=#4;}
+ %\def\mpGHWpoint #1{draw ( z.#1 for j=1 upto 60:..z.#1+((j+uniformdeviate(20)-20,0) scaled 0.3mm rotated (30*j))/20 endfor);}
+ %\def\mpGHWpoints #1#2.{\mpGHWpoint #1\ifx#2\empty\else\mpGHWpoints#2.\fi}
+ %
+ %\def\mpGHWline #1#2{for i=1 upto hwtm:draw hand_writing_path(z.#1--z.#2);endfor;}
+ %%\def\mpGHWlineC #1#2[#3]{drawoptions(withcolor #3);for i=1 upto hwtm:draw hand_writing_path(z.#1--z.#2);endfor;drawoptions(withcolor black);}
+ %\def\mpGHWlines#1#2#3.{\mpGHWline#1#2\ifx#3\empty\else\mpGHWlines#2#3.\fi}
+ %\def\mpGHWlineCs#1#2#3[#4]{\mpGHWlineC#1#2[#4]\ifx#3\empty\else\mpGHWlineCs#2#3[#4]\fi}
+ %  linemarks
+ %\def\mpGHWlineMark #1#2{hwp.dum:=(((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2);
+ %for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;}
+ %\def\mpGHWlineMarkk #1#2{
+ %hwp.dum:=(((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(0.5mm,0) rotated angle(z.#2-z.#1));
+ %for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ %hwp.dum:=(((0,-1mm)--(0,1mm)) rotated angle(z.#2-z.#1)) shifted ((z.#1+z.#2)/2+(-0.5mm,0) rotated angle(z.#2-z.#1));
+ %for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;}
+ %\def\mpGHWlineMarko #1#2{hwp.dum:=fullcircle scaled 2mm shifted ((z.#1+z.#2)/2);
+ %for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;}
+ %\def\mpGHWlineMarkt #1#2{hwp.dum:=((0,0.7) rotated 120--(0,0.7) rotated -120--(0,0.7)--cycle) scaled 2mm shifted ((z.#1+z.#2)/2);
+ %for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;}
+ %\def\mpGHWlineMarkx #1#2{%
+ %hwp.dum:=((0.5,0.5)--(-0.5,-0.5)) scaled 2mm shifted ((z.#1+z.#2)/2);for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;
+ %hwp.dum:=((-0.5,0.5)--(0.5,-0.5)) scaled 2mm shifted ((z.#1+z.#2)/2);for i=1 upto hwtm:draw hand_writing_path(hwp.dum);endfor;}
+ \def\mpGHWlineMarks#1#2#3.{\mpGHWlineMark#1#2\ifx#3\empty\else\mpGHWlineMarks#3.\fi}
+ \def\mpGHWlineMarkks#1#2#3.{\mpGHWlineMarkk#1#2\ifx#3\empty\else\mpGHWlineMarkks#3.\fi}
+ \def\mpGHWlineMarkos#1#2#3.{\mpGHWlineMarko#1#2\ifx#3\empty\else\mpGHWlineMarkos#3.\fi}
+ \def\mpGHWlineMarkts#1#2#3.{\mpGHWlineMarkt#1#2\ifx#3\empty\else\mpGHWlineMarkts#3.\fi}
+ \def\mpGHWlineMarkxs#1#2#3.{\mpGHWlineMarkx#1#2\ifx#3\empty\else\mpGHWlineMarkxs#3.\fi}
+ %
+ \def\mpHandWriteFunctPath(#1){%
+ path hwp.#1;hwp.#1=hand_writing_path(p.#1);draw hwp.#1 scaled w;}
+ \def\mpHandDrawFunctPoints(#1)(#2,#3)[#4,#5]{% 
+ for i=#2 step #4 until #3:
+ draw ( (i,#1(i)) for j=1 upto 40
+ :..( i+(j+uniformdeviate(20)-20)/300*cosd(30*j)*#5 , #1(i)+(j+uniformdeviate(20)-20)/300*sind(30*j)*#5 ) endfor) scaled w;
+ endfor;
+ }%
+ %---------------------------------------------------------------------------------------------------------------
+%===================================================================
+% \mpT 3D View
+%===================================================================
+% Definition of Points of 3Dimension and Trans for 2D Plane
+% View and Target Points
+\def\mpSetTView(#1,#2,#3)(#4,#5,#6){%\sendMP{%
+numeric xView,yView,zView,xTarget,yTarget,zTarget;xView=-1*#1;yView=-1*#3;zView=-1*#2;xTarget=#4;yTarget=#5;zTarget=#6;%
+numeric xr,yr,zr,TVd,TVdxy;xr=xTarget-xView;yr=yTarget-yView;zr=zTarget-zView;
+TVd=sqrt(xr**2+yr**2+zr**2);TVdxy=sqrt(xr**2+yr**2);
+if TVd=0:xView:=xTarget-1;yView:=yTarget-1;zView:=zTarget-1;xr:=1;yr:=1;zr:=1;TVd:=sqrt(3);TVdxy:=sqrt(2);
+elseif TVdxy=0:xView:=xTarget-1;yView:=yTarget-1;xr:=0.1;yr:=0.1;TVdxy:=sqrt(2);fi;%
+numeric TVcosA,TVsinA,TVcosT,TVsinT;TVcosA=xr/TVdxy;TVsinA=yr/TVdxy;TVcosT=TVdxy/TVd;TVsinT=zr/TVd;
+}%}%
+\def\mpSetTViewRT(#1,#2,#3)(#4,#5,#6){%\sendMP{%
+numeric xView,yView,zView,xTarget,yTarget,zTarget;
+%xView=-1*#1;yView=-1*#3;zView=-1*#2;xTarget=#4;yTarget=#5;zTarget=#6;%
+xView=#1*cosd(#3)*cosd(#2);yView=#1*sind(#3);zView=#1*cosd(#3)*sind(#2);
+xTarget=#4;yTarget=#5;zTarget=#6;%
+numeric xr,yr,zr,TVd,TVdxy;xr=xTarget-xView;yr=yTarget-yView;zr=zTarget-zView;
+TVd=sqrt(xr**2+yr**2+zr**2);TVdxy=sqrt(xr**2+yr**2);
+if TVd=0:xView:=xTarget-1;yView:=yTarget-1;zView:=zTarget-1;xr:=1;yr:=1;zr:=1;TVd:=sqrt(3);TVdxy:=sqrt(2);
+elseif TVdxy=0:xView:=xTarget-1;yView:=yTarget-1;xr:=0.1;yr:=0.1;TVdxy:=sqrt(2);fi;%
+numeric TVcosA,TVsinA,TVcosT,TVsinT;TVcosA=xr/TVdxy;TVsinA=yr/TVdxy;TVcosT=TVdxy/TVd;TVsinT=zr/TVd;
+}%}%
+\def\qbSetTViewRTs(#1,#2,#3)(#4,#5,#6){%\sendMP{%
+numeric xView,yView,zView,xTarget,yTarget,zTarget;
+%xView=-1*#1;yView=-1*#3;zView=-1*#2;xTarget=#4;yTarget=#5;zTarget=#6;%
+xView=#1*cosd(#3)*cosd(#2);yView=#1*cosd(#3)*sind(#2);zView=#1*sind(#3);xTarget=#4;yTarget=#5;zTarget=#6;%
+numeric xr,yr,zr,TVd,TVdxy;xr=xTarget-xView;yr=yTarget-yView;zr=zTarget-zView;
+TVd=sqrt(xr**2+yr**2+zr**2);TVdxy=sqrt(xr**2+yr**2);
+if TVd=0:xView:=xTarget-1;yView:=yTarget-1;zView:=zTarget-1;xr:=1;yr:=1;zr:=1;TVd:=sqrt(3);TVdxy:=sqrt(2);
+elseif TVdxy=0:xView:=xTarget-1;yView:=yTarget-1;xr:=0.1;yr:=0.1;TVdxy:=sqrt(2);fi;%
+numeric TVcosA,TVsinA,TVcosT,TVsinT;TVcosA=xr/TVdxy;TVsinA=yr/TVdxy;TVcosT=TVdxy/TVd;TVsinT=zr/TVd;
+}%}%
+% 3次元の点の定義
+\def\mpTPointDef#1(#2,#3,#4){%\sendMP{
+numeric c.#1[];c.#1[0]=#2;c.#1[1]=#3;c.#1[2]=#4;}%}%
+%\def\qbPointsDef#1(#2,#3)#4.{\qbPointDef#1(#2,#3)\ifx#4\@empty\else\qbPointsDef#4.\fi}%
+%\def\qbTPointsDef#1(#2,#3,#4)#5.{\qbTPointDef#1(#2,#3,#4)\ifx#5\@empty\else\qbTPointsDef#5.\fi}%
+\def\mpTPointsDef#1(#2,#3,#4)#5.{\mpTPointDef#1(#2,#3,#4)\ifx#5\@empty\else\mpTPointsDef#5.\fi}%
+% 3次元の点の中点の定義
+\def\mpTmidPoint#1#2 #3{%\sendMP{
+numeric c.#3[];%
+c.#3[0]=(c.#1[0]+c.#2[0])/2;c.#3[1]=(c.#1[1]+c.#2[1])/2;c.#3[2]=(c.#1[2]+c.#2[2])/2;}%}%
+% 3次元の点を視点から注視点を観たときの平面への射影点への変換
+\def\mpTTrans#1{%\sendMP{%
+numeric cc.#1[][];
+% 操作\UTF{2460}　原点を注視点に平行移動
+cc.#1[0][1]=c.#1[0]-xTarget;cc.#1[1][1]=c.#1[1]-yTarget;cc.#1[2][1]=c.#1[2]-zTarget;
+% 操作\UTF{2461}a　z軸反時計回り
+cc.#1[0][2]=-cc.#1[0][1]*TVcosT+cc.#1[1][1]*TVsinT;cc.#1[1][2]=-cc.#1[0][1]*TVsinT-cc.#1[1][1]*TVcosT;
+cc.#1[2][2]=cc.#1[2][1];
+% 操作\UTF{2461}a　y軸反時計回り
+cc.#1[0][3]=-cc.#1[0][2]*TVcosA+cc.#1[2][2]*TVsinA;cc.#1[2][3]=-cc.#1[0][2]*TVsinA-cc.#1[2][2]*TVcosA;
+cc.#1[1][3]=cc.#1[1][2];
+% 操作\UTF{2462}　入れ替え
+cc.#1[0][4]=cc.#1[1][3];cc.#1[1][4]=cc.#1[2][3];cc.#1[2][4]=cc.#1[0][3];
+% 操作\UTF{2463}　遠近処理
+numeric TVdd;TVdd=TVd/(TVd-cc.#1[2][4]);cc.#1[0][5]=cc.#1[0][4]*TVdd;cc.#1[1][5]=cc.#1[1][4]*TVdd;
+%draw (cc.#1[0][5],cc.#1[1][5]) scaled w;
+z.#1=(cc.#1[0][5],cc.#1[1][5]) scaled w;}%}%
+\def\mpTTranss#1#2.{\mpTTrans#1\ifx#2\@empty\else\mpTTranss#2.\fi}%
+%===================================================================
